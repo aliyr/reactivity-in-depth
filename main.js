@@ -1,11 +1,4 @@
-import {
-    init,
-    classModule,
-    propsModule,
-    styleModule,
-    eventListenersModule,
-    h,
-} from 'snabbdom'
+import {classModule, eventListenersModule, h, init, propsModule, styleModule,} from 'snabbdom'
 
 const patch = init([
     classModule,
@@ -16,39 +9,63 @@ const patch = init([
 
 let container = document.getElementById('app')
 
-const state = new Proxy(
-    {
-        counter: 0
-    },
-    {
-        set(obj, prop, newVal) {
-            obj[prop] = newVal
-            container = patch(container, component())
-            return true
+class Component {
+
+    state = new Proxy(
+        {
+            counter: 0
+        },
+        {
+            set: (obj, prop, newVal) => {
+                obj[prop] = newVal
+                container = patch(container, this.render())
+                return true
+            }
+        }
+    )
+
+    methods = {
+        changeCounter: () => {
+            this.state.counter++
         }
     }
-)
 
-const methods = {
-    changeCounter() {
-        console.log(state.counter)
-        state.counter++
+    render() {
+
+        return h(
+            'div',
+            {
+                style: {
+                    color: 'green'
+                },
+                on: {
+                    click: () => { this.methods.changeCounter() }
+                }
+            },
+            `counter is ${this.state.counter}`
+        )
     }
 }
 
-function component () {
-    return h(
-        'div',
-        {
-            style: {
-                color: 'green'
-            },
-            on: {
-                click: () => { methods.changeCounter() }
+function selfish (target) {
+    const cache = new WeakMap();
+    const handler = {
+        get (target, key) {
+            const value = Reflect.get(target, key);
+            if (typeof value !== 'function') {
+                return value;
             }
-        },
-        `counter is ${state.counter}`
-    )
+            if (!cache.has(value)) {
+                cache.set(value, value.bind(target));
+            }
+            return cache.get(value);
+        }
+    };
+    return new Proxy(target, handler);
 }
 
-container = patch(container, component())
+const counterBound = selfish(Component)
+
+const counter = new counterBound()
+
+container = patch(container, counter.render())
