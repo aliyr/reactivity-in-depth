@@ -1,4 +1,11 @@
-import {classModule, eventListenersModule, h, init, propsModule, styleModule,} from 'snabbdom'
+import {
+    init,
+    classModule,
+    propsModule,
+    styleModule,
+    eventListenersModule,
+    h,
+} from 'snabbdom'
 
 const patch = init([
     classModule,
@@ -11,61 +18,60 @@ let container = document.getElementById('app')
 
 class Component {
 
-    state = new Proxy(
+    constructor(
         {
-            counter: 0
-        },
-        {
-            set: (obj, prop, newVal) => {
-                obj[prop] = newVal
-                container = patch(container, this.render())
-                return true
-            }
+            state = {},
+            methods,
+            render
         }
-    )
-
-    methods = {
-        changeCounter: () => {
-            this.state.counter++
-        }
+    ) {
+        this.state = this.stateInitiator.call(this, state)
+        this.methods = this.methodsInitiator.call(this, methods)
+        this.render = this.renderInitiator.call(this, render)
     }
 
-    render() {
-
-        return h(
-            'div',
+    stateInitiator(initState) {
+        return new Proxy(
+            initState,
             {
-                style: {
-                    color: 'green'
-                },
-                on: {
-                    click: () => { this.methods.changeCounter() }
+                set: (obj, prop, newVal) => {
+                    obj[prop] = newVal
+                    container = patch(container, this.render())
+                    return true
                 }
-            },
-            `counter is ${this.state.counter}`
+            }
         )
     }
+
+    methodsInitiator(initMethods) {
+        return initMethods.call(this)
+    }
+
+    renderInitiator(initRender) {
+        return initRender.bind(this)
+    }
 }
 
-function selfish (target) {
-    const cache = new WeakMap();
-    const handler = {
-        get (target, key) {
-            const value = Reflect.get(target, key);
-            if (typeof value !== 'function') {
-                return value;
+const vNode = <div>Hello</div>;
+
+const counter = new Component({
+    state: {
+        counter: 0,
+        items: []
+    },
+    methods() {
+        return {
+            changeCounter: () => {
+                this.state.counter++
+            },
+            addItem: () => {
+                this.state.items.push('Hello')
             }
-            if (!cache.has(value)) {
-                cache.set(value, value.bind(target));
-            }
-            return cache.get(value);
         }
-    };
-    return new Proxy(target, handler);
-}
-
-const counterBound = selfish(Component)
-
-const counter = new counterBound()
+    },
+    render() {
+        return vNode
+    }
+})
 
 container = patch(container, counter.render())
