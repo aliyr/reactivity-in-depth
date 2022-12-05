@@ -2,4 +2,6 @@
 import { renderApp } from "./src/init.js";
 import { counter } from "./src/usage/counter.js";
 
-renderApp(counter)
+const element = document.getElementById('root')
+
+renderApp(element, counter)

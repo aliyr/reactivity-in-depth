@@ -15,9 +15,9 @@ export const patch = init([
 ])
 
 export const container = {
-    el: document.getElementById('app')
+    el: null
 }
 
-export const renderApp = (component) => {
-    container.el = patch(container.el, component.render())
+export const renderApp = (element ,component) => {
+    container.el = patch(element, component.render())
 }
